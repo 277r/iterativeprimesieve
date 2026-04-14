@@ -1,6 +1,7 @@
 // Author: RS
 // To Do:   
-//          remove modulo check below "Duurt Lang!"
+//          remove division at end stage if possible, might require square root(num_in) to become num_in, squaring the amount of numbers (and because of nested for loop) time increase of 80dB / dec. Using the final divisor stage requires SQRT(N)*LOG(N) time since each number needs to be checked, check if feasible and avoidable
+//     
 // Done:
 //          change SLS to be entered in program
 //          Change list to only contain counters (use sets of index matched maxes and counters?) to improve memory, should have processor perfomance effect as well
@@ -36,7 +37,10 @@ int main(int argc, char* argv[]){
         numArray_max[i] = 0;
     }
 
-    unsigned long long ROOT = std::sqrt(x) + 1;
+
+
+    // do not count to ROOT, maybe?
+    unsigned long long ROOT = sqrt(x) + 1;
 
 
      // zero is TRUE, 1 is FALSE, this could optimize since 'jz' faster than 'jnz'
@@ -54,46 +58,49 @@ int main(int argc, char* argv[]){
                     divisor = 0;
                     numArray[j] = 0;
                 }
-                if (numArray[j] == x){
-                    std::cout << "ISPRIME" << "\n";
-                    return;
-                }
 
         }
 
 
+        #if LOGLEVEL > 4
+        for (unsigned long long k = 0; k < SLS; k++){
+            std::cout << numArray_max[k] << ", ";
 
-#if LOGLEVEL > 4
+        }
+        std::cout << "\n";
+
         for (unsigned long long k = 0; k < SLS; k++){
             std::cout << numArray[k] << ", ";
 
         }
-        std::cout << "\n\n";
-#endif
+        std::cout << "\n\n\n";
+        #endif
 
         if (divisor == 0){
             continue;
         }
 
-
-        
-        // DUURT LANG!!
-        unsigned long long rem = x % i;
-        if (rem == 0){
-            std::cout << "ISPRIMENT\n";
-            return -1;
-        }
-        if (rem != 0){
-            //std::cout << "new prime found:" << i << "\n";
+        if (divisor == 1){
+            #if LOGLEVEL > 4
+            std::cout << "new prime found:" << i << "\n";
+            #endif
+     
             numArray[numlistIndex] = 0;
             numArray_max[numlistIndex] = i;
             numlistIndex++;
             continue;
         }
-        
+    }   
+    // could be moved to the if(divisor == 1) section to improve non-prime performanc,e but hope to remove it
+    std::cout << numlistIndex << "VNLS\n";
+    for (int i = 0; i < numlistIndex; i++){
+       if (x % numArray_max[i] == 0){
+            std::cout << "NOT PRIME\n";
+            return -1; 
+        }
     }
-    
     std:: cout << "NUM ISPRIME\n";
+    return 0;
 
     
 
