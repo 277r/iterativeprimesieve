@@ -7,9 +7,19 @@
 #define NP_LOGLEVEL 3
 #if NP_LOGLEVEL > 0
 #include <iostream>
+
+#define __AVX2__
+#define __SSE2__
+#define __x86_64__
+#define __MMX__
+#include <stdio.h>
+#include <stdlib.h>
+#include <x86intrin.h>
+#include <immintrin.h>
 #endif
 
 #define NP_num unsigned long long
+#define NP_iterator unsigned int
 
 
 
@@ -23,34 +33,36 @@ private:
     
     NP_num currentNum = 3;
 
-    NP_num numlistIndex;
-    NP_num maxListSize;
+    NP_iterator numlistIndex;
+    NP_iterator maxListSize;
     // contain the actual list
-    NP_num *numArray_max; 
-    NP_num *numArray;
+    NP_iterator *numArray_max; 
+    NP_iterator *numArray;
+    NP_iterator increment[8] = {1, 1, 1, 1, 1, 1, 1, 1};
     
     
     public:
-    NP_num *getNum(int index){
+    NP_iterator *getNum(int index){
         return &(numArray_max[index]);
     }
-    NP_num getListSize(){
+    NP_iterator getListSize(){
         return numlistIndex;
     }
-    NP_num getMaxListSize(){
+    NP_iterator getMaxListSize(){
         return maxListSize;
     }
 
     // external accesibility should improve since less copies are made, be careful when porting to gmp types
-    NP_num primeSet;
+    NP_iterator primeSet;
+    __m256i valA, valB;
 
     // first argument can be ignored if listInc is non-zero
-    PrimeSieve(NP_num _maxListSize, int _listInc){
+    PrimeSieve(NP_iterator _maxListSize, int _listInc){
         maxListSize = _maxListSize;
         listInc = _listInc;
         if (_listInc == 0){
-            numArray_max = new NP_num[_maxListSize];
-            numArray = new NP_num[_maxListSize];
+            numArray_max = new NP_iterator[_maxListSize];
+            numArray = new NP_iterator[_maxListSize];
         }
 
         // set to zero
@@ -78,19 +90,58 @@ private:
     void getNextSet(){
         bool divisor = 1;
         
-        // iterate through list and increment each value that needs incrementing
-        for (unsigned long long j = 0; j < numlistIndex; j++){
-                numArray[j]++;
-                // if divisor equals incremention, signal STOP, meaning non-prime
-                if (numArray[j] == numArray_max[j]){
-                    divisor = 0;
-                    numArray[j] = 0;
-                }
 
+        
+        
+        // eight WORDS per batch
+        unsigned long long segmentedIndex = numlistIndex >> 3;
+        unsigned long long remIndex = numlistIndex & 7;
+        
+        // iterate through list and increment each value that needs incrementing
+        for (unsigned long long j = 0; j < segmentedIndex; j++){
+            valA = _mm256_loadu_si256((__m256i_u*)&(numArray[8*j]));
+            // may be moved out of loop, value does not change throughout lloop
+            valB = _mm256_loadu_si256((__m256i_u*)increment);
+            valA = _mm256_add_epi32(valA, valB);
+            _mm256_storeu_si256((__m256i_u*)&(numArray[8*j]), valA);
+            
+
+        }
+        for (unsigned long long j = 0; j < remIndex; j++){
+            numArray[numlistIndex - 1 - j]++;
         }
 
 
-        #if NP_LOGLEVEL > 3
+
+        //iterate through list, if divisor equals incremention, signal STOP, meaning non-prime
+        for (unsigned long long j = 0; j < segmentedIndex; j++){
+            // load numarray section
+            valA = _mm256_loadu_si256((__m256i_u*)&(numArray[8*j]));
+            // may be moved out of loop, value does not change throughout lloop
+            // load numarray_max section
+            valB = _mm256_loadu_si256((__m256i_u*)&(numArray_max[8*j]));
+            // create mask, if numarray[.] == numarray_max[.] 
+            __m256i inmax = _mm256_cmpeq_epi32(valA,valB);
+            // if equal, set to zero (occurs at counter overflow)
+            valA = _mm256_blendv_epi8(valA, _mm256_setzero_si256(), inmax);
+            // store section
+            _mm256_storeu_si256((__m256i_u*)&(numArray[8*j]), valA);
+            
+            // test MASK, if MASK enabled
+            if (!_mm256_testz_si256(inmax,inmax)){
+                divisor = 0;
+            }
+        }
+        // remainder
+        for (unsigned long long j = 0; j < remIndex; j++){
+            if (numArray[numlistIndex - 1 - j] == numArray_max[numlistIndex - 1 - j]){
+                    divisor = 0;
+                    numArray[numlistIndex - 1 - j] = 0;
+                }
+        }
+
+
+        #if NP_LOGLEVEL > 4
             std::cout << currentNum;
             std::cout << "\n\n\n";
         #endif

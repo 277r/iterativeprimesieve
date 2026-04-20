@@ -2,16 +2,17 @@
 #include <thread>
 #include <unistd.h>
 
-int *DONE;
+NP_num *DONE;
 
 
-void divide(NP_num *a, NP_num *b){
-    if (*a == 0 || *b == 0){
+void divide(NP_num *a, NP_iterator *_b){ 
+    NP_num b = (unsigned long long)(*_b); 
+
+    if (*a == 0 || b == 0){
         return;
     }
-    if (((*a) % (*b)) == 0){
-        std::cout << "DIVIDER FROM " << *a << "DIVISIBLE BY \n" << *b;
-        std::cout.flush();
+    if (((*a) % (b)) == 0){
+        std::cout << "DIVIDER FROM " << *a << "DIVISIBLE BY" << b << std::endl;
     }
     return;
 }
@@ -34,7 +35,7 @@ void try_i(NP_num *src,PrimeSieve *j, int off, int inc){
     while (true){
         divide(src,j->getNum(index));
         index += inc;
-        while (index > j->getListSize()){
+        while (index >= j->getListSize()){
             usleep(50);
         }
     }
@@ -48,9 +49,9 @@ int main(int argc, char*argv[]){
     int threadcount = std::stoi(argv[2]);
     
     // on the heap so that threads can access
-    PrimeSieve *j = new PrimeSieve(500000000, 0);
+    PrimeSieve *j = new PrimeSieve(100000, 0);
     std::thread inc = std::thread(repGetNext, j);
-    DONE = new int;
+    DONE = new NP_num;
     *DONE = 0;
 
     std::thread *threads = new std::thread[threadcount];
@@ -59,7 +60,6 @@ int main(int argc, char*argv[]){
     }
     // do nothing?
     while (true){
-        std::cout.flush();
         usleep(100000);
         if (*DONE == 1){
             return 0;
