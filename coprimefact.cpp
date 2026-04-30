@@ -49,7 +49,7 @@ int main(int argc, char*argv[]){
     int threadcount = std::stoi(argv[2]);
     
     // on the heap so that threads can access
-    PrimeSieve *j = new PrimeSieve(100000, 0);
+    PrimeSieve *j = new PrimeSieve(10000000, 0);
     std::thread inc = std::thread(repGetNext, j);
     DONE = new NP_num;
     *DONE = 0;

@@ -97,48 +97,37 @@ private:
         unsigned long long segmentedIndex = numlistIndex >> 3;
         unsigned long long remIndex = numlistIndex & 7;
         
-        // iterate through list and increment each value that needs incrementing
+        // iterate through list and increment each value that needs incrementing, compare to max value, if equal, set to zero and set divisor to true 
         for (unsigned long long j = 0; j < segmentedIndex; j++){
             valA = _mm256_loadu_si256((__m256i_u*)&(numArray[8*j]));
             // may be moved out of loop, value does not change throughout lloop
             valB = _mm256_loadu_si256((__m256i_u*)increment);
             valA = _mm256_add_epi32(valA, valB);
-            _mm256_storeu_si256((__m256i_u*)&(numArray[8*j]), valA);
-            
 
-        }
-        for (unsigned long long j = 0; j < remIndex; j++){
-            numArray[numlistIndex - 1 - j]++;
-        }
-
-
-
-        //iterate through list, if divisor equals incremention, signal STOP, meaning non-prime
-        for (unsigned long long j = 0; j < segmentedIndex; j++){
-            // load numarray section
-            valA = _mm256_loadu_si256((__m256i_u*)&(numArray[8*j]));
-            // may be moved out of loop, value does not change throughout lloop
             // load numarray_max section
             valB = _mm256_loadu_si256((__m256i_u*)&(numArray_max[8*j]));
-            // create mask, if numarray[.] == numarray_max[.] 
+             // create mask, if numarray[.] == numarray_max[.] 
             __m256i inmax = _mm256_cmpeq_epi32(valA,valB);
             // if equal, set to zero (occurs at counter overflow)
             valA = _mm256_blendv_epi8(valA, _mm256_setzero_si256(), inmax);
-            // store section
             _mm256_storeu_si256((__m256i_u*)&(numArray[8*j]), valA);
-            
             // test MASK, if MASK enabled
             if (!_mm256_testz_si256(inmax,inmax)){
                 divisor = 0;
             }
+
         }
-        // remainder
         for (unsigned long long j = 0; j < remIndex; j++){
+            numArray[numlistIndex - 1 - j]++;
             if (numArray[numlistIndex - 1 - j] == numArray_max[numlistIndex - 1 - j]){
                     divisor = 0;
                     numArray[numlistIndex - 1 - j] = 0;
                 }
         }
+
+
+
+        
 
 
         #if NP_LOGLEVEL > 4
