@@ -18,7 +18,7 @@
 #include <immintrin.h>
 #endif
 
-#define NP_num unsigned long long
+#define NP_num unsigned int
 #define NP_iterator unsigned int
 
 
@@ -38,7 +38,7 @@ private:
     // contain the actual list
     NP_iterator *numArray_max; 
     NP_iterator *numArray;
-    NP_iterator increment[8] = {1, 1, 1, 1, 1, 1, 1, 1};
+    NP_iterator increment[8] __attribute__ ((aligned (32))) = {1, 1, 1, 1, 1, 1, 1, 1};
     
     
     public:
@@ -58,11 +58,16 @@ private:
 
     // first argument can be ignored if listInc is non-zero
     PrimeSieve(NP_iterator _maxListSize, int _listInc){
+        // fix logleveleing
+        #if NP_LOGLEVEL > 2
+        printf("Size of num, size of iterator resp.: %d, %d\n", sizeof(NP_num), sizeof(NP_iterator));
+        #endif
+
         maxListSize = _maxListSize;
         listInc = _listInc;
         if (_listInc == 0){
-            numArray_max = new NP_iterator[_maxListSize];
-            numArray = new NP_iterator[_maxListSize];
+            numArray_max = (NP_num*) _mm_malloc(_maxListSize*sizeof(NP_num),sizeof(NP_num)*8);
+            numArray = (NP_iterator*) _mm_malloc(_maxListSize*sizeof(NP_iterator),sizeof(NP_iterator)*8);
         }
 
         // set to zero
@@ -99,18 +104,18 @@ private:
         
         // iterate through list and increment each value that needs incrementing, compare to max value, if equal, set to zero and set divisor to true 
         for (unsigned long long j = 0; j < segmentedIndex; j++){
-            valA = _mm256_loadu_si256((__m256i_u*)&(numArray[8*j]));
+            valA = _mm256_load_si256((__m256i_u*)&(numArray[8*j]));
             // may be moved out of loop, value does not change throughout lloop
-            valB = _mm256_loadu_si256((__m256i_u*)increment);
+            valB = _mm256_load_si256((__m256i_u*)increment);
             valA = _mm256_add_epi32(valA, valB);
 
             // load numarray_max section
-            valB = _mm256_loadu_si256((__m256i_u*)&(numArray_max[8*j]));
+            valB = _mm256_load_si256((__m256i_u*)&(numArray_max[8*j]));
              // create mask, if numarray[.] == numarray_max[.] 
             __m256i inmax = _mm256_cmpeq_epi32(valA,valB);
             // if equal, set to zero (occurs at counter overflow)
             valA = _mm256_blendv_epi8(valA, _mm256_setzero_si256(), inmax);
-            _mm256_storeu_si256((__m256i_u*)&(numArray[8*j]), valA);
+            _mm256_store_si256((__m256i_u*)&(numArray[8*j]), valA);
             // test MASK, if MASK enabled
             if (!_mm256_testz_si256(inmax,inmax)){
                 divisor = 0;

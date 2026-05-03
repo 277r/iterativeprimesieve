@@ -1,0 +1,26 @@
+PADDQ.c:1: warning: "__AVX2__" redefined
+    1 | #define __AVX2__
+      | 
+<built-in>: note: this is the location of the previous definition
+PADDQ.c:2: warning: "__x86_64__" redefined
+    2 | #define __x86_64__
+      | 
+<built-in>: note: this is the location of the previous definition
+PADDQ.c:3: warning: "__SSE__" redefined
+    3 | #define __SSE__
+      | 
+<built-in>: note: this is the location of the previous definition
+PADDQ.c:4: warning: "__MMX__" redefined
+    4 | #define __MMX__
+      | 
+<built-in>: note: this is the location of the previous definition
+In file included from /usr/lib/gcc/x86_64-linux-gnu/12/include/immintrin.h:49,
+                 from /usr/lib/gcc/x86_64-linux-gnu/12/include/x86intrin.h:32,
+                 from PADDQ.c:8:
+/usr/lib/gcc/x86_64-linux-gnu/12/include/avx512fintrin.h: In function ‘main’:
+/usr/lib/gcc/x86_64-linux-gnu/12/include/avx512fintrin.h:884:1: error: inlining failed in call to ‘always_inline’ ‘_mm512_add_epi32’: target specific option mismatch
+  884 | _mm512_add_epi32 (__m512i __A, __m512i __B)
+      | ^~~~~~~~~~~~~~~~
+PADDQ.c:29:5: note: called from here
+   29 |     _mm512_add_epi32(*((__m512i*)arr),*((__m512i*)brr));
+      |     ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
