@@ -7,11 +7,19 @@
 #define NP_LOGLEVEL 3
 #if NP_LOGLEVEL > 0
 #include <iostream>
-
+#ifndef __AVX2__
 #define __AVX2__
+#endif
+#ifndef __SSE2__
 #define __SSE2__
+#endif
+#ifndef __x86_64__
 #define __x86_64__
+#endif
+#ifndef __MMX__
 #define __MMX__
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <x86intrin.h>
@@ -54,7 +62,7 @@ private:
 
     // external accesibility should improve since less copies are made, be careful when porting to gmp types
     NP_iterator primeSet;
-    __m256i valA, valB;
+    __m256i valA, valB, valINC;
 
     // first argument can be ignored if listInc is non-zero
     PrimeSieve(NP_iterator _maxListSize, int _listInc){
@@ -101,13 +109,13 @@ private:
         // eight WORDS per batch
         unsigned long long segmentedIndex = numlistIndex >> 3;
         unsigned long long remIndex = numlistIndex & 7;
-        
+        // value constant throughout loop
+        valINC = _mm256_load_si256((__m256i_u*)increment);
+
         // iterate through list and increment each value that needs incrementing, compare to max value, if equal, set to zero and set divisor to true 
         for (unsigned long long j = 0; j < segmentedIndex; j++){
             valA = _mm256_load_si256((__m256i_u*)&(numArray[8*j]));
-            // may be moved out of loop, value does not change throughout lloop
-            valB = _mm256_load_si256((__m256i_u*)increment);
-            valA = _mm256_add_epi32(valA, valB);
+            valA = _mm256_add_epi32(valA, valINC);
 
             // load numarray_max section
             valB = _mm256_load_si256((__m256i_u*)&(numArray_max[8*j]));
